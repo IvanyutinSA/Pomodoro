@@ -11,15 +11,14 @@ typedef struct List {
 //          1 if x > y
 
 List *list_search(List *list, void *target, int cmp(void *, void *)) {
-    if (list == NULL) {
-        return NULL;
+    List *temp_list;
+    temp_list = list;
+
+    while(temp_list != NULL && cmp(target, temp_list->entry) != 0) {
+        temp_list = temp_list->next;
     }
-    if (cmp(target, list->entry) == 0) {
-        return list;
-    }
-    else {
-        return list_search(list->next, target, cmp);
-    }
+
+    return temp_list;
 }
 
 // if retured -1, then list may be NULL
