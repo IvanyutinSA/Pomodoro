@@ -1,0 +1,13 @@
+function logic:
+1. int cmp(void *x, void *y)
+returns -1 if x < y
+         0 if x = y
+         1 if x > y
+
+env structer:
+
+cmp - comparison function;
+
+vars - list;
+List vars -> (void *(EnvVar), ...)
+          -> (void *(char *, void *), ...)
