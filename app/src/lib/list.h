@@ -6,7 +6,7 @@ typedef struct List {
     struct List *next;
 } List;
 
-List *list_search(List *list, void *target, int cmp(void *, void *)); 
+void *list_search(List *list, void *target, int cmp(void *, void *)); 
 void list_insert(List *list, void *target); 
 int list_delete(List *list, void *target, int cmp(void *, void *)); 
 int list_size(List *list);

@@ -1,4 +1,5 @@
 #include "../list.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -14,8 +15,8 @@ typedef struct EnvVar {
 
 int env_cmp(void *x, void *y) {
     EnvVar *u, *v; 
-    u = (EnvVar *)x;
-    v = (EnvVar *)y;
+    u = (EnvVar *) x;
+    v = (EnvVar *) y;
     return strcmp(u->key, v->key);
 } 
 
@@ -49,31 +50,54 @@ int env_add(Env *env, char *key, void *val) {
 
 //Silly
 int env_delete(Env *env, char *key) {
-    return list_delete(env->vars, key, env->cmp);
+    EnvVar *var;
+    int result_code;
+
+    var = malloc(sizeof(EnvVar));
+    var->key = key;
+    
+    result_code =list_delete(env->vars, var, env->cmp); 
+    
+    free(var);
+    return result_code;
 }
 
 //Silly
 void *env_get(Env *env, char *key, void *default_val) {
     void *val;
-    EnvVar *var;
+    EnvVar *target_var, *var;
+
     var = (EnvVar *) malloc(sizeof(EnvVar));
     var->key = key;
-    val = list_search(env->vars, var, env->cmp);
-    if (val == NULL) {
-        val = default_val;
-    }
+    var->val = NULL;
+
+    target_var = (EnvVar *) list_search(env->vars, var, (int (*)(void *, void *)) env->cmp);
     free(var);
+
+    if (target_var == NULL) {
+        val = default_val;
+    } else {
+        val = target_var->val;
+    }
+
     return val;
 }
 
 // if was returned -1, then you don't have key dependency
 int env_set(Env *env, char *key, void *content) {
-    EnvVar *var;
-    var = (EnvVar *) list_search(env->vars, key, env->cmp)->entry;
-    if (var == NULL) {
+    EnvVar *var, *target_var;
+    var = (EnvVar *) malloc(sizeof(EnvVar));
+    var->key = key;
+    var->val = "/menu";
+
+    target_var = (EnvVar *) list_search(env->vars, var, env->cmp);
+    free(var);
+
+    if (target_var == NULL) {
         return -1;
     }
-    var->val = content;
+
+    target_var->val = content;
     return 0; 
 }
 
@@ -82,7 +106,7 @@ int env_contains(Env *env, char *key) {
     int is_contain;
     var = (EnvVar *) malloc(sizeof(EnvVar));
     var->key = key;
-    is_contain = !(list_search(env->vars, var, env->cmp) == NULL);
+    is_contain = list_search(env->vars, var, env->cmp) != NULL;
     free(var);
     return is_contain;
 }

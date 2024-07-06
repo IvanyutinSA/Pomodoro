@@ -10,15 +10,14 @@ typedef struct List {
 //          0 if x = y
 //          1 if x > y
 
-List *list_search(List *list, void *target, int cmp(void *, void *)) {
-    List *temp_list;
-    temp_list = list;
-
-    while(temp_list != NULL && cmp(target, temp_list->entry) != 0) {
-        temp_list = temp_list->next;
+void *list_search(List *list, void *target, int cmp(void *, void *)) {
+    if (list == NULL) {
+        return NULL;
     }
-
-    return temp_list;
+    if (cmp(target, list->entry) == 0) {
+        return list->entry;
+    }
+    return list_search(list->next, target, cmp);
 }
 
 // if retured -1, then list may be NULL
@@ -43,6 +42,7 @@ int list_insert(List *list, void *target) {
 }
 
 // return -1 if target not in list
+// or if its you try to delete first element
 int list_delete(List *list, void *target, int cmp(void *, void *)) {
     List *prev, *deleted;
     prev = list;
@@ -51,7 +51,7 @@ int list_delete(List *list, void *target, int cmp(void *, void *)) {
         return -1;
     } 
 
-    while (prev->next != NULL && cmp(target, prev->next)) {
+    while (prev->next != NULL && cmp(target, prev->next->entry)) {
         prev = prev->next;
     }
 
@@ -76,4 +76,14 @@ int list_size(List *list) {
     }
 
     return size;
+}
+
+int list_destruct(List *list) {
+    List *tmp;
+    while (list != NULL) {
+        tmp = list;
+        list = list->next;
+        free(tmp);
+    }
+    return 0;
 }
