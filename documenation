@@ -11,3 +11,6 @@ cmp - comparison function;
 vars - list;
 List vars -> (void *(EnvVar), ...)
           -> (void *(char *, void *), ...)
+
+
+List is fucking broken 

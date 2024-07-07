@@ -1,3 +1,4 @@
+#include "../lib/cli/timer.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include "../lib/env.h"
@@ -9,7 +10,14 @@ void cmd_stop(Env *env);
 void cmd_menu(Env *env);
 void cmd_navig(Env *env);
 void cmd_error(Env *env);
+void cmd_action_execute(Env *env);
 void env_set_predefined_properites(Env *env);
+void add_action(void *action(void *args), void *args);
+void global_option_list_add(Env *env, char *option);
+void cmd_global_option_execute(Env *env);
+void cmd_global_option_list_init(Env *env);
+void cmd_action_preloop(Env *env);
+void cmd_action_list_init(Env *env);
 
 void env_display_vars_keys(Env *env) {
     int row;
@@ -39,13 +47,14 @@ int main() {
 
     char *route;
 
+    ((void (*)(Env *)) env_get(env, "/action/preloop", NULL))(env);
     while(!env_get(env, "stop", (void *) 1)) {
         printf("\033[2J");
         env_display_vars_keys(env);
         printf("\033[1;1H");
+        ((void (*)(Env *)) env_get(env, "/action/execute", NULL))(env);
         route = (char *) env_get(env, "route", "/error");
         printf("Current route: %s\n", route);
-        // env_display_vars_keys(env);
         ((void (*)(Env *)) env_get(env, route, cmd_stop))(env);
     }
 }
@@ -58,6 +67,13 @@ void env_set_predefined_properites(Env *env) {
     env_add(env, "/menu", cmd_menu);
     env_add(env, "/error", cmd_error);
     env_add(env, "/list/interactive", cmd_list_interactive);
+    env_add(env, "/stopwatch/interactive", cmd_stopwatch);
+    env_add(env, "/action/execute", cmd_action_execute);
+    env_add(env, "/action/list/init", cmd_action_list_init);
+    env_add(env, "/action/preloop", cmd_action_preloop);
+    env_add(env, "/global/option/list/init" , cmd_global_option_list_init);
+    env_add(env, "/global/option/list/add", global_option_list_add);
+    env_add(env, "/global/option/execute", cmd_global_option_execute);
 }
 
 void cmd_menu(Env *env) {
@@ -110,3 +126,63 @@ void cmd_error(Env *env) {
     cmd_stop(env);
 }
 
+void cmd_action_execute(Env *env) {
+    List *list;
+    list = env_get(env, "/action/list", NULL);
+    while(list != NULL) {
+        ((void (*)(Env *)) list->entry)(env);
+        list = list->next;
+    }
+}
+
+void global_option_list_add(Env *env, char *option) {
+    List *list;
+    list = env_get(env, "/global/option/list", NULL);
+    list_insert(list, option);
+}
+
+void cmd_global_option_execute(Env *env) {
+    List *list;
+    char *option;
+    list = env_get(env, "/global/option/list", NULL);
+    while (list != NULL) {
+        option = (char *) list->entry;
+        if (strcmp(option, "/") == 0) {
+            env_set(env, "route", "/");
+        }
+        list = list->next;
+    }
+    ((void (*)(Env *)) env_get(env, "/global/option/list/init", NULL))(env);
+}
+
+void cmd_global_option_list_init(Env *env) {
+    List *list;
+    list = malloc(sizeof(List));
+    list->entry = "";
+    list->next = NULL;
+
+    if (!env_contains(env, "/global/option/list")) {
+        env_add(env, "/global/option/list", list);
+    } else {
+        // free(env_get(env, "/global/option/list", NULL));
+        env_set(env, "/global/option/list", list);
+    }
+}
+
+void cmd_action_preloop(Env *env) {
+    ((void (*)(Env *)) env_get(env, "/global/option/list/init", NULL))(env);
+    ((void (*)(Env *)) env_get(env, "/action/list/init", NULL))(env);
+}
+
+void cmd_action_list_init(Env *env) {
+    List *list;
+    list = malloc(sizeof(List));
+    list->entry = env_get(env, "/global/option/execute", NULL);
+    list->next = NULL;
+    if (!env_contains(env, "/action/list")) {
+        env_add(env, "/action/list", list);
+    } else {
+        // free(env_get(env, "/action/list", NULL));
+        env_set(env, "/action/list", list);
+    }
+}

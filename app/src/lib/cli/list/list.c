@@ -13,10 +13,11 @@ int __list_cmp_string(void *, void *);
 
 void cmd_list_interactive(Env *env) {
     List *list;
-    char *list_representation, *value;
+    char *list_representation, *value, *option_str;
     char option, c;
 
     list = __list_get(env);
+    option_str = malloc(sizeof(char));
     list_representation = __list_get_representation(list);
 
     printf(
@@ -67,6 +68,10 @@ void cmd_list_interactive(Env *env) {
         case '4':
             __list_delete(env);
             break;
+        default:
+            sprintf(option_str, "%c", option);
+            ((void (*)(Env *, char *))env_get(env, "/global/option/list/add", NULL))(env, option_str);
+            break;
     }
 }
 
@@ -105,12 +110,15 @@ List *__list_init(Env *env) {
 
 int __list_delete(Env *env) {
     char *list_destination;
+    int status_code;
 
     list_destination = (char *) malloc(sizeof(char *) * 256);
 
     sprintf(list_destination, "%s|list", (char *) env_get(env, "route", ""));
 
-    return env_delete(env, list_destination);
+    status_code = env_delete(env, list_destination); 
+    free(list_destination);
+    return status_code;
 }
 
 char *__list_get_representation(List *list) {

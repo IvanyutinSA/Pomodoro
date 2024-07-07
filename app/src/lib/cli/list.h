@@ -1,5 +1,5 @@
-#ifndef CLI_LIST_H
-#define CLI_LIST_H
+#ifndef LIST_H
+#define LIST_H
 
 #include "../env.h"
 

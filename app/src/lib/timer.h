@@ -1,15 +1,17 @@
 #ifndef TIMER_H
 #define TIMER_H
+#include <time.h>
 
-struct Stopwatch {
-    double total_secs;
-    double last_check;
-    int is_paused;
-};
-struct Stopwatch create_stopwatch();
+typedef struct Stopwatch {
+    time_t total_secs;
+    time_t last_check;
+    int paused;
+} Stopwatch;
 
-double get_time(struct Stopwatch stopwatch);
-void pause_stopwatch(struct Stopwatch stopwatch);
-void unpause_stopwatch(struct Stopwatch stopwatch);
+Stopwatch *stopwatch_create(); 
+
+long stopwatch_get_time(Stopwatch *stopwatch); 
+void stopwatch_pause(Stopwatch *stopwatch); 
+void stopwatch_unpause(Stopwatch *stopwatch); 
 
 #endif
