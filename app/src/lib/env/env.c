@@ -88,7 +88,7 @@ int env_set(Env *env, char *key, void *content) {
     EnvVar *var, *target_var;
     var = (EnvVar *) malloc(sizeof(EnvVar));
     var->key = key;
-    var->val = "/menu";
+    var->val = NULL;
 
     target_var = (EnvVar *) list_search(env->vars, var, env->cmp);
     free(var);

@@ -68,6 +68,7 @@ void env_set_predefined_properites(Env *env) {
     env_add(env, "/error", cmd_error);
     env_add(env, "/list/interactive", cmd_list_interactive);
     env_add(env, "/stopwatch/interactive", cmd_stopwatch);
+    env_add(env, "/timer/interactive", cmd_timer_interactive);
     env_add(env, "/action/execute", cmd_action_execute);
     env_add(env, "/action/list/init", cmd_action_list_init);
     env_add(env, "/action/preloop", cmd_action_preloop);

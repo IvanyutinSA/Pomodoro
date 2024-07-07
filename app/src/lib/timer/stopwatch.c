@@ -21,7 +21,9 @@ long stopwatch_get_time(Stopwatch *stopwatch) {
 }
 
 void stopwatch_pause(Stopwatch *stopwatch) {
-    stopwatch->total_secs += time(NULL) - stopwatch->last_pause;
+    if (!stopwatch->paused) {
+        stopwatch->total_secs += time(NULL) - stopwatch->last_pause;
+    }
     stopwatch->paused = 1;
 }
 

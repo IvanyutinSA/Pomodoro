@@ -4,5 +4,6 @@
 #include "../env.h"
 
 void cmd_stopwatch(Env *env);
+void cmd_timer_interactive(Env *env);
 
 #endif

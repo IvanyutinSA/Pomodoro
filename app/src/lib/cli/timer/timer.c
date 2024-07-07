@@ -1,19 +1,19 @@
-#include <bits/types/struct_timeval.h>
-#include <string.h>
-#include <stdlib.h>
+#include "../../input.h"
 #include <stdio.h>
-#include <sys/select.h>
+#include <stdlib.h>
 #include "../../env.h"
+#include <sys/select.h>
 #include "../../timer.h"
 
-char *__stopwatch_get_representation(Stopwatch *stopwatch);
-Stopwatch *__stopwatch_get(Env *env);
-int __stopwatch_delete(Env *env);
-void *__input_get(void *data);
+Timer *__timer_get(Env *env);
+int __timer_delete(Env *env);
+char *__timer_get_representation(Timer *timer);
+int __timer_set_bound(Env *env, char *bound_str);
+int __timer_parse_bound(char *bound_str, long *bound);
 
-void cmd_stopwatch(Env *env) {
-    Stopwatch *stopwatch;
-    char *stopwatch_representation, *option_str;
+void cmd_timer_interactive(Env *env) {
+    Timer *timer;
+    char *timer_representation, *option_str, *value;
     char option, c;
     fd_set rfds;
     int retval;
@@ -22,19 +22,23 @@ void cmd_stopwatch(Env *env) {
     tv.tv_sec = 1;
     tv.tv_usec = 0;
     option_str = malloc(sizeof(char)*24);
-    stopwatch = __stopwatch_get(env);
-    stopwatch_representation = __stopwatch_get_representation(stopwatch);
+    value = malloc(sizeof(char)*24);
+    timer = __timer_get(env);
+    timer_representation = __timer_get_representation(timer);
 
     printf(
-        "Stopwatch\n"
-        "Your stopwatch: %s\n"
+        "Timer\n"
+        "Your timer: %s\n"
         "Options:\n"
         "1. Pause\n"
         "2. Unpause\n"
-        "3. Reset\n",
-        stopwatch_representation
+        "3. Reset\n"
+        "4. Set time\n"
+        "Option: ",
+        timer_representation
     );
-    free(stopwatch_representation);
+    fflush(stdout);
+    free(timer_representation);
 
     FD_ZERO(&rfds);
     FD_SET(0, &rfds);
@@ -48,19 +52,21 @@ void cmd_stopwatch(Env *env) {
     } 
 
     switch(option) {
-        case '0':
-            printf("FINE\n");
-            getchar();
-            break;
         case '1':
-            stopwatch_pause(stopwatch);
+            timer_pause(timer);
             break;
         case '2':
-            stopwatch_unpause(stopwatch);
+            timer_unpause(timer);
             break;
         case '3':
-            __stopwatch_delete(env);
+            __timer_delete(env);
             break;
+        case '4':
+            printf("Value: ");
+            read_line(value);
+            if (__timer_set_bound(env, value) == 0) {
+                __timer_delete(env);
+            }
         default:
             sprintf(option_str, "%c", option);
             ((void (*)(Env *, char *))env_get(env, "/global/option/list/add", NULL))(env, option_str);
@@ -68,53 +74,114 @@ void cmd_stopwatch(Env *env) {
     }
 }
 
-char *__stopwatch_get_representation(Stopwatch *stopwatch) {
-    char *stopwatch_representation;
-    long seconds;
-    int hours, minutes;
+Timer *__timer_get(Env *env) {
+    Timer *timer;
+    char *timer_destination, *timer_bound_destination;
+    long bound; 
 
-    stopwatch_representation = malloc(sizeof(char) *64);
-    
-    seconds = stopwatch_get_time(stopwatch);
+    timer_destination = (char *) malloc(sizeof(char) * 256);
+    timer_bound_destination = (char *) malloc(sizeof(char) * 256);
 
-    sprintf(stopwatch_representation, "%ld", seconds);
-    if (stopwatch->paused) {
-        strcat(stopwatch_representation, "(paused)");
-    }
+    sprintf(timer_destination, "%s|timer", (char *) env_get(env, "route", ""));
+    sprintf(timer_bound_destination, "%s|timer_bound", (char *) env_get(env, "route", ""));
 
-    return stopwatch_representation;
-}
-
-
-Stopwatch *__stopwatch_get(Env *env) {
-    Stopwatch *stopwatch;
-    char *stopwatch_destination;
-
-    stopwatch_destination = (char *) malloc(sizeof(char *) * 256);
-
-    sprintf(stopwatch_destination, "%s|stopwatch", (char *) env_get(env, "route", ""));
-
-    if (env_contains(env, stopwatch_destination)) {
-        stopwatch = env_get(env, stopwatch_destination, NULL);
-        free(stopwatch_destination);
+    if(env_contains(env, timer_destination)) {
+        timer = env_get(env, timer_destination, NULL);
+        free(timer_destination);
     } else {
-        stopwatch = stopwatch_create();
-        env_add(env, stopwatch_destination, stopwatch);
+        bound = (long) env_get(env, timer_bound_destination, 0);
+        timer = timer_init(bound);
+        env_add(env, timer_destination, timer);
     }
 
-    return stopwatch;
+    free(timer_bound_destination);
+
+    return timer;
 }
 
-int __stopwatch_delete(Env *env) {
-    char *stopwatch_destination;
+int __timer_delete(Env *env) {
+    char *timer_destination;
     int status_code;
 
-    stopwatch_destination = (char *) malloc(sizeof(char *) * 256);
+    timer_destination = (char *) malloc(sizeof(char) *256);
 
-    sprintf(stopwatch_destination, "%s|stopwatch", (char *) env_get(env, "route", ""));
+    sprintf(timer_destination, "%s|timer", (char *) env_get(env, "route", ""));
 
-    status_code = env_delete(env, stopwatch_destination);
-    free(stopwatch_destination);
+    status_code = env_delete(env, timer_destination);
+    free(timer_destination);
 
     return status_code;
+}
+
+// if returned -1, then maybe bound_str in wrong format
+int __timer_set_bound(Env *env, char *bound_str) {
+    char *timer_bound_destination;
+    int status_code;
+    long bound = 0;
+
+    if (__timer_parse_bound(bound_str, &bound) != 0) {
+        printf("dfsd\n");
+        getchar();
+        return -1;
+    }
+
+    status_code = 0;
+    timer_bound_destination = (char *) malloc(sizeof(char) *256);
+
+    sprintf(timer_bound_destination, "%s|timer_bound", (char *) env_get(env, "route", ""));
+
+    if (env_contains(env, timer_bound_destination)) {
+        status_code = env_set(env, timer_bound_destination, (void *) bound);
+        free(timer_bound_destination);
+    } else {
+        env_add(env, timer_bound_destination, (void *) bound);
+    }
+
+    return status_code;
+}
+
+int __timer_parse_bound(char *bound_str, long *bound) {
+    int stage, j;
+    char time[3][24];
+    char c;
+
+    stage = 0;
+
+    printf("%s\n", bound_str);
+    j = 0;
+    for(int i = 0; i < strlen(bound_str); i++) {
+        if(bound_str[i] == ':') {
+            time[stage][j] = '\0';
+            j = 0;
+            stage++;
+        } else {
+            time[stage][j++] = bound_str[i];
+        }
+    }
+    time[2][j] = '\0';
+
+    *bound = atoi(time[0])*3600 + atoi(time[1])*60 + atoi(time[2]);
+    printf("%ld", *bound);
+
+    return 0;
+}
+
+char *__timer_get_representation(Timer *timer) {
+    char *timer_representation;
+    long seconds;
+
+    timer_representation = malloc(sizeof(char) *64);
+    
+    seconds = abs((int) timer_get_time(timer));
+    if (timer_is_completed(timer)) {
+        sprintf(timer_representation, "-%02ld:%02ld:%02ld", (seconds/3600), (seconds/60)%60, seconds%60);
+    } else {
+        sprintf(timer_representation, "%02ld:%02ld:%02ld", (seconds/3600), (seconds/60)%60, seconds%60);
+    }
+
+    if (timer->paused) {
+        strcat(timer_representation, " (paused)");
+    }
+
+    return timer_representation;
 }
